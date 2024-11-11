@@ -8,12 +8,10 @@ class EnvKeyManager
 
     /**
      * Constructor to set the .env file path.
-     *
-     * @param string $envFilePath
      */
     public function __construct(string $envFilePath)
     {
-        if (!file_exists($envFilePath)) {
+        if (! file_exists($envFilePath)) {
             throw new \InvalidArgumentException("Environment file not found at path: {$envFilePath}");
         }
 
@@ -22,10 +20,6 @@ class EnvKeyManager
 
     /**
      * Set or update a key in the environment file.
-     *
-     * @param string $key
-     * @param string $value
-     * @return bool
      */
     public function setKey(string $key, string $value): bool
     {
@@ -34,9 +28,6 @@ class EnvKeyManager
 
     /**
      * Disable (comment out) a key in the environment file.
-     *
-     * @param string $key
-     * @return bool
      */
     public function disableKey(string $key): bool
     {
@@ -49,7 +40,7 @@ class EnvKeyManager
         }
 
         // Comment out (disable) the key
-        $replaced = preg_replace($pattern, "#$0", $input);
+        $replaced = preg_replace($pattern, '#$0', $input);
 
         if ($replaced === $input || $replaced === null) {
             return false; // Key not found or already disabled
@@ -62,9 +53,6 @@ class EnvKeyManager
 
     /**
      * Enable (uncomment) a key in the environment file.
-     *
-     * @param string $key
-     * @return bool
      */
     public function enableKey(string $key): bool
     {
@@ -72,7 +60,7 @@ class EnvKeyManager
         $input = file_get_contents($this->envFilePath);
 
         // Uncomment (enable) the key
-        $replaced = preg_replace($pattern, "$1", $input);
+        $replaced = preg_replace($pattern, '$1', $input);
 
         if ($replaced === $input || $replaced === null) {
             return false; // Key not found or already enabled
@@ -85,10 +73,6 @@ class EnvKeyManager
 
     /**
      * Write a new environment file with the given key and value.
-     *
-     * @param string $key
-     * @param string $value
-     * @return bool
      */
     protected function writeNewEnvironmentFileWith(string $key, string $value): bool
     {
@@ -110,7 +94,7 @@ class EnvKeyManager
             }
 
             // Append the new key-value pair
-            $replaced = $input . PHP_EOL . "{$key}={$value}";
+            $replaced = $input.PHP_EOL."{$key}={$value}";
         }
 
         file_put_contents($this->envFilePath, $replaced);
@@ -120,9 +104,6 @@ class EnvKeyManager
 
     /**
      * Get a regex pattern that will match the env key with any value.
-     *
-     * @param string $key
-     * @return string
      */
     protected function keyReplacementPattern(string $key): string
     {

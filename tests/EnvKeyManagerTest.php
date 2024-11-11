@@ -4,7 +4,7 @@ use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
 
 beforeEach(function () {
     // Create a temporary .env file for testing
-    $this->envFilePath = __DIR__ . '/temp.env';
+    $this->envFilePath = __DIR__.'/temp.env';
     file_put_contents($this->envFilePath, "EXISTING_KEY=existing_value\n");
 });
 
@@ -21,7 +21,7 @@ test('it initializes with valid .env file path', function () {
 });
 
 test('it throws exception for invalid .env file path', function () {
-    $invalidPath = __DIR__ . '/nonexistent.env';
+    $invalidPath = __DIR__.'/nonexistent.env';
     expect(fn () => new EnvKeyManager($invalidPath))
         ->toThrow(InvalidArgumentException::class, "Environment file not found at path: {$invalidPath}");
 });

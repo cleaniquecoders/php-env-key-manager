@@ -16,28 +16,24 @@ composer require cleaniquecoders/php-env-key-manager
 
 ### Basic Usage
 
-**Initialize `EnvKeyManager`**: Provide the path to your `.env` file when creating the instance.
+Following are the basic usage examples for the package:
 
-   ```php
-   use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
+```php
+use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
 
-   // Path to your .env file
-   $envFilePath = __DIR__ . '/.env';
-   $envManager = new EnvKeyManager($envFilePath);
-   ```
+// Path to your .env file
+$envFilePath = __DIR__ . '/.env';
+$envManager = new EnvKeyManager($envFilePath);
 
-**Set an Environment Key**: Use `setKey` to add or update a key-value pair.
+// Set a key
+$envManager->setKey('APP_DEBUG', 'true');
 
-   ```php
-   $key = 'APP_LOGIN_KEY';
-   $value = bin2hex(random_bytes(16)); // Example 32-character random key
+// Disable a key
+$envManager->disableKey('APP_DEBUG');
 
-   if ($envManager->setKey($key, $value)) {
-       echo "Successfully set {$key} in .env file.";
-   } else {
-       echo "Failed to set {$key}. Please ensure the key exists in the .env file.";
-   }
-   ```
+// Enable a key
+$envManager->enableKey('APP_DEBUG');
+```
 
 ---
 
@@ -45,8 +41,10 @@ composer require cleaniquecoders/php-env-key-manager
 
 #### Laravel
 
+To use `EnvKeyManager` in a Laravel application, register it as a singleton in the `AppServiceProvider` to allow easy access across your application.
+
 <details>
-<summary>Usage in Laravel</summary>
+<summary>Laravel Usage</summary>
 
 1. **Register as a Singleton**
 
@@ -65,6 +63,8 @@ composer require cleaniquecoders/php-env-key-manager
 
 2. **Usage in a Command**
 
+   Create a Laravel Artisan command to set, disable, or enable environment keys:
+
    ```php
    <?php
 
@@ -72,45 +72,59 @@ composer require cleaniquecoders/php-env-key-manager
 
    use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
    use Illuminate\Console\Command;
-   use Illuminate\Support\Str;
 
-   class GenerateLoginKeyCommand extends Command
+   class ManageEnvKeyCommand extends Command
    {
-       protected $signature = 'generate:login-key {--show : Display the key instead of modifying files}';
-       protected $description = 'Generate and set a login key';
+       protected $signature = 'env:manage-key {action} {key} {value?}';
+       protected $description = 'Manage an environment key';
 
-       protected $envKeyManager;
+       protected $envManager;
 
-       public function __construct(EnvKeyManager $envKeyManager)
+       public function __construct(EnvKeyManager $envManager)
        {
            parent::__construct();
-           $this->envKeyManager = $envKeyManager;
+           $this->envManager = $envManager;
        }
 
        public function handle()
        {
-           $key = Str::random(32);
+           $action = $this->argument('action');
+           $key = $this->argument('key');
+           $value = $this->argument('value');
 
-           if ($this->option('show')) {
-               return $this->line('<comment>'.$key.'</comment>');
+           switch ($action) {
+               case 'set':
+                   $this->envManager->setKey($key, $value);
+                   $this->info("Key {$key} set to {$value}.");
+                   break;
+
+               case 'disable':
+                   $this->envManager->disableKey($key);
+                   $this->info("Key {$key} has been disabled.");
+                   break;
+
+               case 'enable':
+                   $this->envManager->enableKey($key);
+                   $this->info("Key {$key} has been enabled.");
+                   break;
+
+               default:
+                   $this->error("Invalid action. Use 'set', 'disable', or 'enable'.");
            }
-
-           if (!$this->envKeyManager->setKey('APP_LOGIN_KEY', $key)) {
-               $this->error('Failed to set APP_LOGIN_KEY in .env');
-               return;
-           }
-
-           $this->info('Login key set successfully.');
        }
    }
    ```
 
 </details>
 
+---
+
 #### Symfony
 
+To use `EnvKeyManager` in Symfony, initialize it with the `.env` path, and use it in Symfony commands or services.
+
 <details>
-<summary>Usage in Symfony</summary>
+<summary>Symfony Usage</summary>
 
 1. **Initialize `EnvKeyManager`** with Symfony’s `.env` path.
 
@@ -123,7 +137,7 @@ composer require cleaniquecoders/php-env-key-manager
 
 2. **Use in a Symfony Command**
 
-   Create a Symfony console command and inject `EnvKeyManager`:
+   Create a Symfony console command to manage environment keys:
 
    ```php
    <?php
@@ -132,43 +146,75 @@ composer require cleaniquecoders/php-env-key-manager
 
    use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
    use Symfony\Component\Console\Command\Command;
+   use Symfony\Component\Console\Input\InputArgument;
    use Symfony\Component\Console\Input\InputInterface;
    use Symfony\Component\Console\Output\OutputInterface;
 
-   class GenerateLoginKeyCommand extends Command
+   class ManageEnvKeyCommand extends Command
    {
-       protected static $defaultName = 'app:generate-login-key';
-       private $envKeyManager;
+       protected static $defaultName = 'env:manage-key';
 
-       public function __construct(EnvKeyManager $envKeyManager)
+       private $envManager;
+
+       public function __construct(EnvKeyManager $envManager)
        {
            parent::__construct();
-           $this->envKeyManager = $envKeyManager;
+           $this->envManager = $envManager;
+       }
+
+       protected function configure()
+       {
+           $this
+               ->setDescription('Manage an environment key')
+               ->addArgument('action', InputArgument::REQUIRED, 'Action: set, disable, enable')
+               ->addArgument('key', InputArgument::REQUIRED, 'The environment key')
+               ->addArgument('value', InputArgument::OPTIONAL, 'The value for set action');
        }
 
        protected function execute(InputInterface $input, OutputInterface $output)
        {
-           $key = bin2hex(random_bytes(16));
+           $action = $input->getArgument('action');
+           $key = $input->getArgument('key');
+           $value = $input->getArgument('value');
 
-           if ($this->envKeyManager->setKey('APP_LOGIN_KEY', $key)) {
-               $output->writeln("Login key set successfully: {$key}");
-               return Command::SUCCESS;
-           } else {
-               $output->writeln("<error>Failed to set APP_LOGIN_KEY in .env</error>");
-               return Command::FAILURE;
+           switch ($action) {
+               case 'set':
+                   $this->envManager->setKey($key, $value);
+                   $output->writeln("Key {$key} set to {$value}.");
+                   break;
+
+               case 'disable':
+                   $this->envManager->disableKey($key);
+                   $output->writeln("Key {$key} has been disabled.");
+                   break;
+
+               case 'enable':
+                   $this->envManager->enableKey($key);
+                   $output->writeln("Key {$key} has been enabled.");
+                   break;
+
+               default:
+                   $output->writeln("Invalid action. Use 'set', 'disable', or 'enable'.");
+                   return Command::FAILURE;
            }
+
+           return Command::SUCCESS;
        }
    }
    ```
 
 </details>
 
+---
+
 #### CodeIgniter
 
-<details>
-<summary>Usage in CodeIgniter</summary>
+To use `EnvKeyManager` in CodeIgniter, initialize it with the `.env` path and use it within controllers or custom classes.
 
-1. **Set Up**: Define `.env` path and create `EnvKeyManager` instance.
+<details>
+<summary>CodeIgniter Usage</summary>
+
+1. **Initialize `EnvKeyManager`** with the CodeIgniter `.env` path.
 
    ```php
    use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
@@ -177,9 +223,9 @@ composer require cleaniquecoders/php-env-key-manager
    $envManager = new EnvKeyManager($envFilePath);
    ```
 
-2. **Usage in CodeIgniter Controller**
+2. **Use in a CodeIgniter Controller**
 
-   In a controller or any other class:
+   Create a CodeIgniter controller method to manage environment keys:
 
    ```php
    <?php
@@ -190,23 +236,40 @@ composer require cleaniquecoders/php-env-key-manager
 
    class EnvController extends BaseController
    {
-       public function updateEnv()
-       {
-           $envFilePath = ROOTPATH . '.env';
-           $envManager = new EnvKeyManager($envFilePath);
-           $key = 'CI_LOGIN_KEY';
-           $value = bin2hex(random_bytes(16));
+       protected $envManager;
 
-           if ($envManager->setKey($key, $value)) {
-               echo "Successfully set {$key} in .env file.";
-           } else {
-               echo "Failed to set {$key}. Please ensure the key exists in the .env file.";
+       public function __construct()
+       {
+           $this->envManager = new EnvKeyManager(ROOTPATH . '.env');
+       }
+
+       public function manageKey($action, $key, $value = null)
+       {
+           switch ($action) {
+               case 'set':
+                   $this->envManager->setKey($key, $value);
+                   return "Key {$key} set to {$value}.";
+
+               case 'disable':
+                   $this->envManager->disableKey($key);
+                   return "Key {$key} has been disabled.";
+
+               case 'enable':
+                   $this->envManager->enableKey($key);
+                   return "Key {$key} has been enabled.";
+
+               default:
+                   return "Invalid action. Use 'set', 'disable', or 'enable'.";
            }
        }
    }
    ```
 
 </details>
+
+---
+
+These framework-specific examples demonstrate how to integrate `EnvKeyManager` seamlessly in Laravel, Symfony, and CodeIgniter, making it easy to manage environment keys within each framework.
 
 ## Testing
 

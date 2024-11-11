@@ -1,42 +1,212 @@
-# :package_description
+# PHP Env Key Manager
 
-[![Latest Version on Packagist](https://img.shields.io/packagist/v/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-[![Tests](https://img.shields.io/github/actions/workflow/status/:vendor_slug/:package_slug/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/:vendor_slug/:package_slug/actions/workflows/run-tests.yml)
-[![Total Downloads](https://img.shields.io/packagist/dt/:vendor_slug/:package_slug.svg?style=flat-square)](https://packagist.org/packages/:vendor_slug/:package_slug)
-<!--delete-->
----
-This package can be used as to scaffold a framework agnostic package. Follow these steps to get started:
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/cleaniquecoders/php-env-key-manager.svg?style=flat-square)](https://packagist.org/packages/cleaniquecoders/php-env-key-manager) [![Tests](https://img.shields.io/github/actions/workflow/status/cleaniquecoders/php-env-key-manager/run-tests.yml?branch=main&label=tests&style=flat-square)](https://github.com/cleaniquecoders/php-env-key-manager/actions/workflows/run-tests.yml) [![Total Downloads](https://img.shields.io/packagist/dt/cleaniquecoders/php-env-key-manager.svg?style=flat-square)](https://packagist.org/packages/cleaniquecoders/php-env-key-manager)
 
-1. Press the "Use template" button at the top of this repo to create a new repo with the contents of this skeleton
-2. Run "php ./configure.php" to run a script that will replace all placeholders throughout all the files
-3. Have fun creating your package.
-4. If you need help creating a package, consider picking up our <a href="https://laravelpackage.training">Laravel Package Training</a> video course.
----
-<!--/delete-->
-This is where your description should go. Try and limit it to a paragraph or two. Consider adding a small example.
-
-## Support us
-
-[<img src="https://github-ads.s3.eu-central-1.amazonaws.com/:package_name.jpg?t=1" width="419px" />](https://spatie.be/github-ad-click/:package_name)
-
-We invest a lot of resources into creating [best in class open source packages](https://spatie.be/open-source). You can support us by [buying one of our paid products](https://spatie.be/open-source/support-us).
-
-We highly appreciate you sending us a postcard from your hometown, mentioning which of our package(s) you are using. You'll find our address on [our contact page](https://spatie.be/about-us). We publish all received postcards on [our virtual postcard wall](https://spatie.be/open-source/postcards).
+A framework-agnostic PHP package for easy .env file key management. Seamlessly update, add, or modify environment variables across projects with minimal configuration.
 
 ## Installation
 
 You can install the package via composer:
 
 ```bash
-composer require :vendor_slug/:package_slug
+composer require cleaniquecoders/php-env-key-manager
 ```
 
 ## Usage
 
-```php
-$skeleton = new VendorName\Skeleton();
-echo $skeleton->echoPhrase('Hello, VendorName!');
-```
+### Basic Usage
+
+**Initialize `EnvKeyManager`**: Provide the path to your `.env` file when creating the instance.
+
+   ```php
+   use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
+
+   // Path to your .env file
+   $envFilePath = __DIR__ . '/.env';
+   $envManager = new EnvKeyManager($envFilePath);
+   ```
+
+**Set an Environment Key**: Use `setKey` to add or update a key-value pair.
+
+   ```php
+   $key = 'APP_LOGIN_KEY';
+   $value = bin2hex(random_bytes(16)); // Example 32-character random key
+
+   if ($envManager->setKey($key, $value)) {
+       echo "Successfully set {$key} in .env file.";
+   } else {
+       echo "Failed to set {$key}. Please ensure the key exists in the .env file.";
+   }
+   ```
+
+---
+
+### Framework-Specific Examples
+
+#### Laravel
+
+<details>
+<summary>Usage in Laravel</summary>
+
+1. **Register as a Singleton**
+
+   In `App\Providers\AppServiceProvider`:
+
+   ```php
+   use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
+
+   public function register()
+   {
+       $this->app->singleton(EnvKeyManager::class, function ($app) {
+           return new EnvKeyManager($app->environmentFilePath());
+       });
+   }
+   ```
+
+2. **Usage in a Command**
+
+   ```php
+   <?php
+
+   namespace App\Console\Commands;
+
+   use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
+   use Illuminate\Console\Command;
+   use Illuminate\Support\Str;
+
+   class GenerateLoginKeyCommand extends Command
+   {
+       protected $signature = 'generate:login-key {--show : Display the key instead of modifying files}';
+       protected $description = 'Generate and set a login key';
+
+       protected $envKeyManager;
+
+       public function __construct(EnvKeyManager $envKeyManager)
+       {
+           parent::__construct();
+           $this->envKeyManager = $envKeyManager;
+       }
+
+       public function handle()
+       {
+           $key = Str::random(32);
+
+           if ($this->option('show')) {
+               return $this->line('<comment>'.$key.'</comment>');
+           }
+
+           if (!$this->envKeyManager->setKey('APP_LOGIN_KEY', $key)) {
+               $this->error('Failed to set APP_LOGIN_KEY in .env');
+               return;
+           }
+
+           $this->info('Login key set successfully.');
+       }
+   }
+   ```
+
+</details>
+
+#### Symfony
+
+<details>
+<summary>Usage in Symfony</summary>
+
+1. **Initialize `EnvKeyManager`** with Symfony’s `.env` path.
+
+   ```php
+   use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
+
+   $envFilePath = __DIR__ . '/../../.env'; // Adjust the path to your Symfony .env file
+   $envManager = new EnvKeyManager($envFilePath);
+   ```
+
+2. **Use in a Symfony Command**
+
+   Create a Symfony console command and inject `EnvKeyManager`:
+
+   ```php
+   <?php
+
+   namespace App\Command;
+
+   use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
+   use Symfony\Component\Console\Command\Command;
+   use Symfony\Component\Console\Input\InputInterface;
+   use Symfony\Component\Console\Output\OutputInterface;
+
+   class GenerateLoginKeyCommand extends Command
+   {
+       protected static $defaultName = 'app:generate-login-key';
+       private $envKeyManager;
+
+       public function __construct(EnvKeyManager $envKeyManager)
+       {
+           parent::__construct();
+           $this->envKeyManager = $envKeyManager;
+       }
+
+       protected function execute(InputInterface $input, OutputInterface $output)
+       {
+           $key = bin2hex(random_bytes(16));
+
+           if ($this->envKeyManager->setKey('APP_LOGIN_KEY', $key)) {
+               $output->writeln("Login key set successfully: {$key}");
+               return Command::SUCCESS;
+           } else {
+               $output->writeln("<error>Failed to set APP_LOGIN_KEY in .env</error>");
+               return Command::FAILURE;
+           }
+       }
+   }
+   ```
+
+</details>
+
+#### CodeIgniter
+
+<details>
+<summary>Usage in CodeIgniter</summary>
+
+1. **Set Up**: Define `.env` path and create `EnvKeyManager` instance.
+
+   ```php
+   use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
+
+   $envFilePath = ROOTPATH . '.env'; // CodeIgniter base path to .env
+   $envManager = new EnvKeyManager($envFilePath);
+   ```
+
+2. **Usage in CodeIgniter Controller**
+
+   In a controller or any other class:
+
+   ```php
+   <?php
+
+   namespace App\Controllers;
+
+   use CleaniqueCoders\PhpEnvKeyManager\EnvKeyManager;
+
+   class EnvController extends BaseController
+   {
+       public function updateEnv()
+       {
+           $envFilePath = ROOTPATH . '.env';
+           $envManager = new EnvKeyManager($envFilePath);
+           $key = 'CI_LOGIN_KEY';
+           $value = bin2hex(random_bytes(16));
+
+           if ($envManager->setKey($key, $value)) {
+               echo "Successfully set {$key} in .env file.";
+           } else {
+               echo "Failed to set {$key}. Please ensure the key exists in the .env file.";
+           }
+       }
+   }
+   ```
+
+</details>
 
 ## Testing
 
@@ -58,7 +228,7 @@ Please review [our security policy](../../security/policy) on how to report secu
 
 ## Credits
 
-- [:author_name](https://github.com/:author_username)
+- [Nasrul Hazim Bin Mohamad](https://github.com/nasrulhazim)
 - [All Contributors](../../contributors)
 
 ## License

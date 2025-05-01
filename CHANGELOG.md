@@ -2,6 +2,19 @@
 
 All notable changes to `php-env-key-manager` will be documented in this file.
 
+## Added Laravel 12 and PHP 8.4 Support - 2025-05-01
+
+### What's Changed
+
+* Bump dependabot/fetch-metadata from 2.2.0 to 2.3.0 by @dependabot in https://github.com/cleaniquecoders/php-env-key-manager/pull/4
+* Bump aglipanci/laravel-pint-action from 2.4 to 2.5 by @dependabot in https://github.com/cleaniquecoders/php-env-key-manager/pull/5
+
+### New Contributors
+
+* @dependabot made their first contribution in https://github.com/cleaniquecoders/php-env-key-manager/pull/4
+
+**Full Changelog**: https://github.com/cleaniquecoders/php-env-key-manager/compare/v1.0.0...1.1.0
+
 ## v1.0.0 - 2024-11-11
 
 ### Release v1.0.0 - `cleaniquecoders/php-env-key-manager`
@@ -41,6 +54,7 @@ $envManager->disableKey('APP_DEBUG');
 // Enable a key
 $envManager->enableKey('APP_DEBUG');
 
+
 ```
 ##### Installation
 
@@ -48,6 +62,7 @@ Install via Composer:
 
 ```bash
 composer require cleaniquecoders/php-env-key-manager
+
 
 ```
 ##### Documentation
